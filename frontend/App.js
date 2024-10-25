@@ -1,53 +1,61 @@
-import { useState,useEffect } from 'react';
-import { StyleSheet, Text, View, Image, FlatList, TouchableOpacity} from 'react-native';
+import { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, Image, FlatList, TouchableOpacity, Alert } from 'react-native';
 import Ipcim from './Ipcim';
 
 export default function App() {
+  const [adatok, setAdatok] = useState([]);
 
-  const[adatok,setAdatok] = useState([])
-
-  const letoltes = async() => {
-    const x = await fetch(Ipcim.Ipcim + "film")
-    const y = await x.json()
-    setAdatok(y)
-    //alert(JSON.stringify(y))
-  }
-
-  useEffect(() =>{
-    letoltes()
-  },[])
-
-  const szavazas = async(id) =>{
-    //alert(id)
-    var bemenet = {
-      "bevitel1":id
+  const letoltes = async () => {
+    try {
+      const response = await fetch(Ipcim.Ipcim + "film");
+      if (!response.ok) {
+        throw new Error('Hiba a filmek letöltésekor: ' + response.status);
+      }
+      const data = await response.json();
+      setAdatok(data);
+    } catch (error) {
+      Alert.alert("Hiba", error.message);
     }
-    const x = await fetch(Ipcim.Ipcim + "szavazatFelvitel",
-    {
-      method: "POST",
-      body: JSON.stringify(bemenet),
-      headers: {"Content-type": "application/json; charset=UTF-8"}
+  };
+
+  useEffect(() => {
+    letoltes();
+  }, []);
+
+  const szavazas = async (id) => {
+    const bemenet = { "bevitel1": id };
+    try {
+      const response = await fetch(Ipcim.Ipcim + "szavazatFelvitel", {
+        method: "POST",
+        body: JSON.stringify(bemenet),
+        headers: { "Content-type": "application/json; charset=UTF-8" }
+      });
+
+      if (!response.ok) {
+        throw new Error('Hiba a szavazat felvitelénél: ' + response.status);
+      }
+      const message = await response.text();
+      Alert.alert("Siker", message);
+    } catch (error) {
+      Alert.alert("Hiba", error.message);
     }
-    )
-    const y = await x.text()
-    alert(y)
-  }
+  };
 
   return (
     <View style={styles.container}>
       <Text>Marvel filmek</Text>
       <FlatList
         data={adatok}
-        renderItem={({item}) =>
-        <View>  
-          <Text style={{fontSize:24,color:"RGB(165, 42, 42)",marginBottom:20}}>{item.cim}</Text>
-          <Image source={{uri: Ipcim.Ipcim + item.kep}} style={{width:350, height:350}}/>
-          <TouchableOpacity style={{backgroundColor:"blue",marginBottom:30}} onPress={() => szavazas(item.id)}>
-            <Text style={{color:"white",fontSize:24}}>Erre szavazok</Text>
-          </TouchableOpacity>
-        </View>
+        renderItem={({ item }) =>
+          <View>
+            <Text style={{ fontSize: 24, color: "RGB(165, 42, 42)", marginBottom: 20 }}>{item.cim}</Text>
+            <Image source={{ uri: Ipcim.Ipcim + item.kep }} style={{ width: 350, height: 350 }} />
+            <TouchableOpacity style={{ backgroundColor: "blue", marginBottom: 30 }} onPress={() => szavazas(item.id)}>
+              <Text style={{ color: "white", fontSize: 24 }}>Erre szavazok</Text>
+            </TouchableOpacity>
+          </View>
         }
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id.toString()}
       />
     </View>
   );
@@ -58,6 +66,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     alignItems: 'center',
-    marginTop:50
+    marginTop: 50
   },
 });
